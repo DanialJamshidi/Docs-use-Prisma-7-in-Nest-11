@@ -1,32 +1,43 @@
-راه‌اندازی Prisma در NestJS (قدم به قدم)
+# راه‌اندازی Prisma در NestJS (قدم به قدم)
+
 سلام! بر اساس تجربه‌ای که در چت داشتیم، اینجا روش کامل و درست اتصال Prisma 7 به NestJS 11 رو قدم به قدم توضیح می‌دم.
 
-قدم ۱: نصب پکیج‌های مورد نیاز
-bash
+## قدم ۱: نصب پکیج‌های مورد نیاز
+
+```bash
 # داخل پروژه NestJS
 npm install prisma --save-dev
 npm install @prisma/client
 npm install @prisma/adapter-pg pg
 npm install dotenv
-قدم ۲: مقداردهی اولیه Prisma
-bash
+```
+
+## قدم ۲: مقداردهی اولیه Prisma
+
+```bash
 npx prisma init
+```
+
 این دستور دو چیز می‌سازه:
+- پوشه `prisma/` با فایل `schema.prisma`
+- فایل `.env` در ریشه پروژه
 
-پوشه prisma/ با فایل schema.prisma
+## قدم ۳: تنظیم فایل .env
 
-فایل .env در ریشه پروژه
+فایل `.env` باید کنار `package.json` باشه، نه داخل `src/`:
 
-قدم ۳: تنظیم فایل .env
-فایل .env باید کنار package.json باشه، نه داخل src/:
-
-text
+```text
 DATABASE_URL="postgresql://postgres:root@localhost:5432/nest"
-نکته مهم: اگر از PostgreSQL استفاده می‌کنی، فرمت باید اینطور باشه:
-postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+```
 
-قدم ۴: تنظیم schema.prisma
-prisma
+**نکته مهم:** اگر از PostgreSQL استفاده می‌کنی، فرمت باید اینطور باشه:
+```
+postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+```
+
+## قدم ۴: تنظیم schema.prisma
+
+```prisma
 // prisma/schema.prisma
 
 generator client {
@@ -57,23 +68,24 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-قدم ۵: اجرای مهاجرت (Migration)
-bash
+```
+
+## قدم ۵: اجرای مهاجرت (Migration)
+
+```bash
 npx prisma migrate dev --name init
+```
+
 این کار:
+- فایل‌های migration رو می‌سازه
+- دیتابیس رو آپدیت می‌کنه
+- PrismaClient رو در مسیر مشخص شده (`src/generated/prisma`) تولید می‌کنه
 
-فایل‌های migration رو می‌سازه
+## قدم ۶: ساخت Prisma Service
 
-دیتابیس رو آپدیت می‌کنه
+بساز: `src/prisma/prisma.service.ts`
 
-PrismaClient رو در مسیر مشخص شده (src/generated/prisma) تولید می‌کنه
-
-قدم ۶: ساخت Prisma Service
-بساز:
-
-text
-src/prisma/prisma.service.ts
-typescript
+```typescript
 // src/prisma/prisma.service.ts
 
 import 'dotenv/config';  // ⚠️ خیلی مهم - برای لود .env
@@ -105,12 +117,15 @@ export class PrismaService
     await this.$disconnect();
   }
 }
-توجه: برای Prisma 7 استفاده از adapter الزامی شده.
+```
 
-قدم ۷: ساخت Prisma Module
-text
-src/prisma/prisma.module.ts
-typescript
+**توجه:** برای Prisma 7 استفاده از adapter الزامی شده.
+
+## قدم ۷: ساخت Prisma Module
+
+بساز: `src/prisma/prisma.module.ts`
+
+```typescript
 // src/prisma/prisma.module.ts
 
 import { Global, Module } from '@nestjs/common';
@@ -122,8 +137,11 @@ import { PrismaService } from './prisma.service';
   exports: [PrismaService],
 })
 export class PrismaModule {}
-قدم ۸: ثبت در AppModule
-typescript
+```
+
+## قدم ۸: ثبت در AppModule
+
+```typescript
 // src/app.module.ts
 
 import { Module } from '@nestjs/common';
@@ -137,10 +155,13 @@ import { PostsModule } from './posts/posts.module';
   ],
 })
 export class AppModule {}
-قدم ۹: استفاده در Service ها
+```
+
+## قدم ۹: استفاده در Service ها
+
 حالا می‌تونی PrismaService رو مثل هر سرویس دیگه‌ای Inject کنی:
 
-typescript
+```typescript
 // src/posts/posts.service.ts
 
 import { Injectable } from '@nestjs/common';
@@ -183,8 +204,11 @@ export class PostsService {
     });
   }
 }
-قدم ۱۰: Controller (اختیاری)
-typescript
+```
+
+## قدم ۱۰: Controller (اختیاری)
+
+```typescript
 // src/posts/posts.controller.ts
 
 import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
@@ -219,8 +243,11 @@ export class PostsController {
     return this.postsService.delete(+id);
   }
 }
-قدم ۱۱: ساختار نهایی پروژه
-text
+```
+
+## قدم ۱۱: ساختار نهایی پروژه
+
+```text
 my-nest-project/
 ├── .env                      ✅
 ├── package.json
@@ -239,3 +266,18 @@ my-nest-project/
 │   │   ├── posts.service.ts  ✅
 │   │   └── posts.controller.ts
 │   └── app.module.ts         ✅
+```
+
+---
+
+## نکات کلیدی
+
+1. **مسیر خروجی Prisma Client** در `schema.prisma` به `../src/generated/prisma` تنظیم شده تا فایل‌های تولید شده در پروژه مدیریت شوند.
+
+2. **adapter اجباری** در Prisma 7 برای PostgreSQL از پکیج `@prisma/adapter-pg` استفاده می‌شود.
+
+3. **`dotenv/config`** در بالای فایل سرویس برای اطمینان از بارگذاری متغیرهای محیطی ضروری است.
+
+4. **`@Global()`** در PrismaModule باعث می‌شود که PrismaService بدون نیاز به import در ماژول‌های دیگر در دسترس باشد.
+
+5. **مدیریت اتصال** با پیاده‌سازی `OnModuleInit` و `OnModuleDestroy`، اتصال به دیتابیس در زمان راه‌اندازی و قطع آن در زمان خاموش شدن برنامه مدیریت می‌شود.
