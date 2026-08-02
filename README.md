@@ -42,7 +42,7 @@ postgresql://USER:PASSWORD@HOST:PORT/DATABASE
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"   // مسیر خروجی سفارشی
+  output   = "../generated/prisma"   // مسیر خروجی سفارشی
 }
 
 datasource db {
@@ -55,16 +55,6 @@ model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  body      String?
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
